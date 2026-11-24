@@ -1,0 +1,35 @@
+name: Veille CROUS
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: crous
+  cancel-in-progress: false
+
+jobs:
+  veille:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - uses: actions/cache/restore@v4
+        with:
+          path: logements_vus.json
+          key: vus-${{ github.run_id }}
+          restore-keys: vus-
+      - run: python crous_bot.py
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DUREE: "3300"
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('logements_vus.json') != ''
+        with:
+          path: logements_vus.json
+          key: vus-${{ github.run_id }}
